@@ -34,7 +34,12 @@ module OpenTelemetry
 
         def self.extract_context(properties)
           # use the receive span as parent context
-          parent_context = OpenTelemetry.propagation.extract(properties[:tracer_receive_headers])
+          parent_context =
+            if Bunny::Instrumentation.instance.config[:propagation_style] == :child
+              OpenTelemetry.propagation.extract(properties[:headers])
+            else
+              OpenTelemetry.propagation.extract(properties[:tracer_receive_headers])
+            end
 
           # link to the producer context
           producer_context = OpenTelemetry.propagation.extract(properties[:headers])
