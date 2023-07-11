@@ -16,11 +16,19 @@ module OpenTelemetry
             tracer.in_span("#{queue} receive", attributes: attributes, kind: :consumer) do |span, _ctx|
               delivery_info, properties, payload = super
 
+              if Bunny::Instrumentation.instance.config[:propagation_style] == :child
+                ctx = OpenTelemetry.propagation.extract(properties[:headers])
+                token = OpenTelemetry::Context.attach(ctx)
+              end
+
               return [delivery_info, properties, payload] unless delivery_info
 
               OpenTelemetry::Instrumentation::Bunny::PatchHelpers.trace_enrich_receive_span(span, self, delivery_info, properties)
 
               [delivery_info, properties, payload]
+            ensure
+              OpenTelemetry::Context.detach(token) if
+                Bunny::Instrumentation.instance.config[:propagation_style] == :child && token
             end
           end
 

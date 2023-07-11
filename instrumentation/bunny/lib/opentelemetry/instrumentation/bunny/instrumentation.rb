@@ -21,6 +21,8 @@ module OpenTelemetry
           defined?(::Bunny)
         end
 
+        option :propagation_style, default: :link, validate: %i[link child none]
+
         private
 
         def require_patches
